@@ -3,7 +3,7 @@
 $rec = false;
 $imagefilename="sprite";
 $stylefilename="style";
-
+$padding = 0;
 
 // on recupere toutes les options
 foreach
@@ -11,7 +11,7 @@ foreach
     $argv as $key => $arg
 )
 {
-    echo "$stylefilename $imagefilename";
+    //echo "$stylefilename $imagefilename";
     //var_dump($argv);
     if
     (
@@ -44,11 +44,11 @@ foreach($argv as $key => $arg)
         {
             if($rec==true)
             {
-                $files = listFilesWithRec("./".$arg,$stylefilename,$imagefilename);
+                $files = listFilesWithRec("./".$arg);
             }
             else
             {
-                $files = listFilesWithoutRec("./".$arg,$stylefilename,$imagefilename);
+                $files = listFilesWithoutRec("./".$arg);
             }
         }
 
@@ -74,10 +74,10 @@ foreach($files as $key => $file)
 //regenere les cles du tableau files 
 $files = array_merge($files);
 
-echo "$stylefilename $imagefilename";
+//echo "$stylefilename $imagefilename";
 if(isset($files[1]))
 {
-    $gdImage = my_merge_image_and_css($files,$stylefilename,$imagefilename);
+    $gdImage = my_merge_image_and_css($files,$stylefilename,$imagefilename,$padding);
 }
 else
 {
@@ -120,31 +120,35 @@ function listFilesWithRec( $from)//.
 function listFilesWithoutRec( $from)//.
 {  
     $files = array();
-    $dirs = array($from);
-    while( NULL !== ($dir = array_pop($dirs)))
+    //$dirs = array($from);
+    if( is_dir($from) )
     {
-        //array_pop() => supprime et recupere le dernier element d´un tableau
-        if( $dh = opendir($dir))
-        {
-            while( false !== ($file = readdir($dh)))
+    
+    
+     if(  ( $dh = opendir($from) ) !== null  )
+     {
+   
+        
+         while ( ( $file = readdir($dh) ) !== false  )
+         {
+            if( $file == '.' || $file == '..'|| is_dir($file))
             {
-                if( $file == '.' || $file == '..')
-                {
-                    continue;
-                }
-                $path = $dir . '/' . $file;
-                if( is_dir($path))
-                {
-                    $dirs[] = $path;
-                }
-                else
-                {
-                    $files[] = $path;
-                }
+                continue;
             }
-            closedir($dh);
-        }
+
+            if(is_file($file))
+            {
+                $files[] = $from."/".$file;
+            }
+         }
+
+         closedir($dh);
+       
+     }
+    
+    
     }
+
     return $files;
 }
 
