@@ -1,42 +1,120 @@
 <?php
+include("./deletecsspngfiles.php");
+
 
 $rec = false;
 $imagefilename="sprite";
 $stylefilename="style";
 $padding = 0;
-
+$files = array();
 // on recupere toutes les options
+
+//var_dump($argv);
 foreach
 (
     $argv as $key => $arg
 )
 {
-    //echo "$stylefilename $imagefilename";
-    //var_dump($argv);
     if
     (
         $key>0
     )
     {
+        $arg = rtrim(ltrim($arg));
         if
         (
             $arg== "-r" || $arg== "--recursive"
         )
         {
             $rec = true;
-            unset($arg);
+        }
+
+        if
+        (
+            $arg=="-i"
+        )
+        {
+            $arrim = explode("." , $argv[$key+1]);
+            if
+            (
+                isset($arrim[0])
+            )
+            {   
+                $imagefilename=$arrim[0];
+            }
+        }
+
+        if
+        (
+            $arg=="-s"
+        )
+        {
+            $arrst = explode("." , $argv[$key+1]);
+            if
+            (
+                isset($arrst[0])
+            )
+            {   
+                $stylefilename=$arrst[0];
+            }
+        }
+
+        if
+        (
+            $arg=="-p"
+        )
+        {
+            if
+            (
+                isset($argv[$key+1])&&is_numeric($argv[$key+1])
+            )
+            {   
+                $padding=intval($argv[$key+1]);
+            }
+        }
+
+        $arrim = explode("-output-image=" , $arg);
+        if
+        (
+            isset($arrim[1])&&$arrim[0]=="-"
+        )
+        {
+            $arrname=explode(".",$arrim[1]);
+            if
+            (
+                isset($arrname[0])
+            )
+            {
+                $imagefilename = $arrname[0];
+            }
+        }
+
+        $arrst = explode("-output-style=" , $arg);
+        if
+        (
+            isset($arrst[1])&&$arrst[0]=="-"
+        )
+        {
+            $arrname=explode(".",$arrst[1]);
+            if
+            (
+                isset($arrname[0])
+            )
+            {
+                $stylefilename = $arrname[0];
+            }
         }
 
     }
 }
 
-$files = array_merge($argv);
+$argv = array_merge($argv);
+
+deletecsspngfiles("./",$stylefilename,$imagefilename);
 
 // on recupere tous les fichiers des parametres
 foreach($argv as $key => $arg)
 {
-
-    //var_dump($argv);
     if($key>0)
     {
         $extension = substr($arg,-4,strlen($arg));
@@ -60,6 +138,8 @@ foreach($argv as $key => $arg)
     }
 }
 
+if(isset($files))
+{
 // on trie les fichiers en recuperant les fichiers png pour l instant
 foreach($files as $key => $file)
 {   
@@ -71,22 +151,29 @@ foreach($files as $key => $file)
     }
 }
 
+
 //regenere les cles du tableau files 
 $files = array_merge($files);
 
 //echo "$stylefilename $imagefilename";
 if(isset($files[1]))
 {
-    $gdImage = my_merge_image_and_css($files,$stylefilename,$imagefilename,$padding);
+    my_merge_image_and_css($files,$stylefilename,$imagefilename,$padding);
 }
 else
 {
-    echo "Veuillez renseigner au moins deux images!";
+    echo "Veuillez renseigner un nom de dossier avec au moins deux images ou deux images separees d un espace en arguments!\n";
+}
+
+}
+else
+{
+    echo "Veuillez renseigner au moins deux images ou au moins un dossier d imagesen argument!\n";
 }
 
 
 // fonction qui recupere tous les fichiers png et jpg des dossiers et sous-dossiers indiques
-function listFilesWithRec( $from)//.
+function listFilesWithRec( $from)
 {  
     $files = array();
     $dirs = array($from);
@@ -101,6 +188,7 @@ function listFilesWithRec( $from)//.
                 {
                     continue;
                 }
+
                 $path = $dir . '/' . $file;
                 if( is_dir($path))
                 {
@@ -117,113 +205,158 @@ function listFilesWithRec( $from)//.
     return $files;
 }
 
-function listFilesWithoutRec( $from)//.
+function listFilesWithoutRec($from)
 {  
     $files = array();
-    //$dirs = array($from);
     if( is_dir($from) )
     {
-    
-    
      if(  ( $dh = opendir($from) ) !== null  )
      {
-   
-        
-         while ( ( $file = readdir($dh) ) !== false  )
+         while (( $file = readdir($dh)) !== false  )
          {
             if( $file == '.' || $file == '..'|| is_dir($file))
             {
                 continue;
             }
-
-            if(is_file($file))
+            else
             {
                 $files[] = $from."/".$file;
             }
          }
 
          closedir($dh);
-       
      }
-    
-    
     }
 
     return $files;
 }
 
 // fonction qui concatene deux images
-function my_merge_image_and_css($files,$stylefilename,$imagefilename)
+function my_merge_image_and_css($files,$stylefilename,$imagefilename,$padding)
 {
-
+    $doublepadding = $padding * 2;
     $imgs = array();
     $mxwidth = 0;
+    $mxheight = 0;
+    $position = 0;
+    $i = 0;
+    $ii=0;
+    $widthmx = 0;
+    $countimg = 0;
+    
+
     foreach (
-        $files as $key => $file
+        $files as $file
     )
     {
         $img = imagecreatefrompng($file);
         
         array_push($imgs,$img);
 
-        $himg = imagesy ($img);
-
         $mxwidth += imagesx($img);
 
         $mxheight = ($mxheight>(imagesy ($img)))?$mxheight:(imagesy ($img));
 
     }
-    
 
-    //var_dump($imgs);
-
-    $position = 0;
-    $i = 0;
-    $ii=0;
-    $heightmx = 0;
-    $widthmx = 0;
-    var_dump($imgs);
     foreach (
-        $imgs as $key => $img
+        $imgs as $img
     )
     {
-        list($width , $height , $type) = getimagesize($files[$i]);
-
-        $heightmx+=$height;
+        list($width , $height) = getimagesize($files[$i]);
+        $countimg++;
         $widthmx+=$width;
-
-        echo "$widthmx \n$heightmx";
         $i++;
     }
 
+    $extension = substr($stylefilename, -4, strlen($stylefilename));
+    if($extension==".css")
+    {
+        $tab = explode(".",$stylefilename);
+        $stylefilename = $tab[0];
+    }
+
+    $extension = substr($imagefilename, -4, strlen($imagefilename));
+    if($extension==".png")
+    {
+        $tab = explode(".",$imagefilename);
+        $imagefilename = $tab[0];
+    }
+
+
+
+
     $fp = fopen( $stylefilename.".css",'w+');
-    fwrite($fp,'.'.$stylefilename ." { width: ".$widthmx.'px; height: '.$mxheight.'px; background-image: url(./'.$imagefilename.'.png); text-align:center; position:relative; }'."\n");
+    
+
+    fwrite($fp,'.'.$stylefilename ." \n{\n\twidth: ".($mxwidth+($doublepadding*$countimg))."px;\n\theight: ".($mxheight+$doublepadding)."px;\n\tbackground-image: url(./".$imagefilename.".png);\n\ttext-align:center;\n\tposition:relative;\n\tdisplay:flex;\n\tflex-direction:row;\n}\n\n");
    
+    fwrite($fp,".main\n{\n\tdisplay:flex;\n\tjustify-content:center;\n\tmargin-top:10%;\n}\n\n");
+
+
     $position = 0;
     $i = 0;
-    $image = imagecreatetruecolor($mxwidth,$mxheight);
+    $countloop =0;
+
+    $image = imagecreatetruecolor(($mxwidth+($doublepadding*$countimg)),$mxheight+$doublepadding);
     imagecolortransparent ($image, imagecolorallocate ($image, 0, 0, 0));
-
-
-    var_dump($imgs);
+    
     foreach (
-        $imgs as $key => $img
+        $imgs as $img
     )
     {
-        list($width , $height , $type) = getimagesize($files[$i]);
+        list($width , $height) = getimagesize($files[$i]);
+        //pre-incrementation
         ++$ii;
 
-        fwrite($fp,'.'.$stylefilename.($ii)." { left:".$position."px; width:".$width."px;}"."\n");	
-		
-        $imgmerged = imagecopymerge($image, $img, $position,0,0,0, $widthmx, $heightmx, 100);
-        $position+=$width;
+        fwrite($fp,'.'.$stylefilename.($ii)."\n{\n\tleft:".$position+$padding."px;\n\twidth:".$width+$doublepadding."px;\n\theight:".$mxheight+$doublepadding."px;\n}\n\n"."\n");
+
+        $random = rand(1,3);
+
+        switch ($random) {
+            case 1:
+                fwrite($fp,'.'.$stylefilename.($ii).":hover\n{\n\tbackground-color: red;\n\topacity:0.7;\n}\n\n");
+                break;
+            case 2:
+                fwrite($fp,'.'.$stylefilename.($ii).":hover\n{\n\tbackground-color: green;\n\topacity:0.7;\n}\n\n");
+                break;
+            default:
+            fwrite($fp,'.'.$stylefilename.($ii).":hover\n{\n\tbackground-color: yellow;\n\topacity:0.7;\n}\n\n");
+                break;
+        }
+
+        if($position==0)
+        {
+            fwrite($fp,'.'.$stylefilename.($ii)."position\n{\n\theight:".$height."px;\n\twidth:".$width."px;\n\tpadding:".$padding."px;\n\tbackground: url(./".$imagefilename.".png) ".$position."px -".(($mxheight - $height) / 2)."px no-repeat;\n}\n\n");
+
+        } else 
+        {
+            fwrite($fp, '.' . $stylefilename . ($ii) . "position\n{\n\theight:" . $height . "px;\n\twidth:" . $width . "px;\n\tpadding:" . $padding . "px;\n\tbackground: url(./" . $imagefilename . ".png) -" . $position+$padding . "px -" . (($mxheight - $height) / 2) . "px no-repeat;\n}\n\n");
+        }
+
+        //echo "position plus padding :".$position + $doublepadding."\nposition sans padding: $position\n";
+
+        //echo "padding: $padding, padding calcule: " . ((($mxheight + $doublepadding) - $height) / 2) . "\n";
+
+        //echo "largeur max + padding: " . ($mxwidth + ($doublepadding * $countimg)) . " largeur max sans padding: $mxwidth\n";
+
+        if ($countloop == 0) {
+            imagecopymerge($image, $img, $position + $padding, ((($mxheight + $doublepadding) - $height) / 2), 0, 0, $width, $height, 100);
+            $position+=$width+$padding;
+        }
+        else
+        {
+            imagecopymerge($image, $img, $position + $doublepadding, ((($mxheight + $doublepadding) - $height) / 2), 0, 0, $width, $height, 100);
+            $position+=$width+$doublepadding;
+        }
+
+        $countloop++;
         $i++;
     }
     fclose($fp);
-
-    $bgpng = imagepng($image,$imagefilename.".png");
-
-    return $imgmerged ;
+    
+    imagepng($image,$imagefilename.".png");
+    
 }
 
 
@@ -246,10 +379,7 @@ imagecopymerge(
 
 /*
 
-    __________________ETAPE0___________________
-
-    chmod($first_img_path,0755);
-    chmod($second_img_path,0755);
+    __________________ETAPE-0___________________
     
     // echo "$second_img_path\n";
 
