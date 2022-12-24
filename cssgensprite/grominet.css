@@ -1,0 +1,84 @@
+.grominet 
+{
+	width: 2905px;
+	height: 1302px;
+	background-image: url(./grosminet.png);
+	text-align:center;
+	position:relative;
+	display:flex;
+	flex-direction:row;
+}
+
+.main
+{
+	display:flex;
+	justify-content:center;
+	margin-top:10%;
+}
+
+.grominet1
+{
+	left:10px;
+	width:533px;
+	height:1302px;
+}
+
+
+.grominet1:hover
+{
+	background-color: green;
+	opacity:0.7;
+}
+
+.grominet1position
+{
+	height:513px;
+	width:513px;
+	padding:10px;
+	background: url(./grosminet.png) 0px -384.5px no-repeat;
+}
+
+.grominet2
+{
+	left:533px;
+	width:880px;
+	height:1302px;
+}
+
+
+.grominet2:hover
+{
+	background-color: green;
+	opacity:0.7;
+}
+
+.grominet2position
+{
+	height:953px;
+	width:860px;
+	padding:10px;
+	background: url(./grosminet.png) -533px -164.5px no-repeat;
+}
+
+.grominet3
+{
+	left:1413px;
+	width:1492px;
+	height:1302px;
+}
+
+
+.grominet3:hover
+{
+	background-color: red;
+	opacity:0.7;
+}
+
+.grominet3position
+{
+	height:1282px;
+	width:1472px;
+	padding:10px;
+	background: url(./grosminet.png) -1413px -0px no-repeat;
+}
+
