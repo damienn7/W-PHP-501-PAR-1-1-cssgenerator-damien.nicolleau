@@ -12,6 +12,8 @@ $countrecursive = 0;
 $countimage = 0;
 $countstyle = 0;
 $countpadding = 0;
+$error = false;
+$verify = "";
 // on recupere toutes les options
 
 //var_dump($argv);
@@ -100,11 +102,37 @@ foreach ($argv as $key => $arg) {
             }
         }
 
+
+        if(
+            isset($arg[1])||$arg[0]=="-"
+            ) {
+
+            if (isset($arg[1])==NULL)
+            {
+                $error=true;
+            }
+
+            if(isset($arg[15]))
+            {
+                $verify=substr($arg,0,15);
+                //echo $verify;
+            if($verify!="--output-image="||$verify!="--output-style="||$verify!="--output-style=")
+            {
+                $error = true;
+                
+            }
+        }
+        }
     }
 }
 
-if ($countimage > 1 || $countimage > 1 || $countstyle > 1 || $countrecursive > 1) {
-    echo "\033[31m [ERROR] Veuillez renseigner une seule option a la fois!\n";
+if ($countimage > 1 || $countimage > 1 || $countstyle > 1 || $countrecursive > 1||$error==true) {
+    echo "\033[31m            [ERROR] Veuillez renseigner une seule option a la fois\n\n                    ou saisir une option valide!\n\n";
+
+    if($error==true)
+    {
+        echo "\033[36m            [Liste des options disponibles]\n\n              --output-image=FILENAME [-i]  --output-style=FILENAME [-s]\n\n              --padding=PADDING [-p]  --recursive [-r]\n";
+    }
 } else {
 
     $argv = array_merge($argv);
@@ -153,11 +181,11 @@ if ($countimage > 1 || $countimage > 1 || $countstyle > 1 || $countrecursive > 1
             echo "\n\033[96m\033[6m            [Png genere avec succes]    $imagefilename.png\n";
             echo "\033[96m            [Css genere avec succes]    $stylefilename.css\n\n";
         } else {
-            echo "\033[31m [ERROR] Veuillez renseigner un nom de dossier avec au moins deux images ou deux images separees d un espace en arguments!\n";
+            echo "\033[31m            [ERROR] Veuillez renseigner un nom de dossier avec au moins deux images ou deux images\n            separees d un espace en arguments!\n";
         }
 
     } else {
-        echo "\033[31m [ERROR] Veuillez renseigner au moins deux images ou au moins un dossier d imagesen argument!\n";
+        echo "\033[31m            [ERROR] Veuillez renseigner au moins deux images ou au moins\n            un dossier d images en argument!\n";
     }
 
 }
@@ -278,6 +306,22 @@ function my_merge_image_and_css($files, $stylefilename, $imagefilename, $padding
 
     $fp = fopen($stylefilename . ".css", 'w+');
 
+    $fq = fopen($stylefilename."_index" . ".htm", 'w+');
+
+    fwrite($fq,"
+    <!DOCTYPE html>
+<html lang=\"en\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <link rel=\"stylesheet\" type=\"text/css\" href=\"./".$stylefilename.".css\">
+    <title>".$stylefilename."_index" ."</title>
+</head>
+<body>
+<div class=\"main\">
+    <div class=\"".$stylefilename."\"/>
+    ");
 
     fwrite($fp, '.' . $stylefilename . " \n{\n\twidth: " . ($mxwidth + ($doublepadding * $countimg)) . "px;\n\theight: " . ($mxheight + $doublepadding) . "px;\n\tbackground-image: url(./" . $imagefilename . ".png);\n\ttext-align:center;\n\tposition:relative;\n\tdisplay:flex;\n\tflex-direction:row;\n}\n\n");
 
@@ -287,6 +331,8 @@ function my_merge_image_and_css($files, $stylefilename, $imagefilename, $padding
     $position = 0;
     $i = 0;
     $countloop = 0;
+    $chaine = "";
+
 
     $image = imagecreatetruecolor(($mxwidth + ($doublepadding * $countimg)), $mxheight + $doublepadding);
     imagecolortransparent($image, imagecolorallocate($image, 0, 0, 0));
@@ -297,6 +343,17 @@ function my_merge_image_and_css($files, $stylefilename, $imagefilename, $padding
         ++$ii;
 
         fwrite($fp, '.' . $stylefilename . ($ii) . "\n{\n\tleft:" . $position + $padding . "px;\n\twidth:" . $width + $doublepadding . "px;\n\theight:" . $mxheight + $doublepadding . "px;\n}\n\n" . "\n");
+
+        fwrite($fq,"
+        <div class=\"". $stylefilename . ($ii)."\"></div>
+        ");
+
+        $backspace = chr(8);
+        if($countloop==$countimg-1)
+        {
+            fwrite($fq, "
+    </div>\n");
+        }
 
         $random = rand(1, 3);
 
@@ -319,6 +376,10 @@ function my_merge_image_and_css($files, $stylefilename, $imagefilename, $padding
             fwrite($fp, '.' . $stylefilename . ($ii) . "position\n{\n\theight:" . $height . "px;\n\twidth:" . $width . "px;\n\tpadding:" . $padding . "px;\n\tbackground: url(./" . $imagefilename . ".png) -" . $position + $padding . "px -" . (($mxheight - $height) / 2) . "px no-repeat;\n}\n\n");
         }
 
+
+        $chaine .= "
+    <div class=\"" . $stylefilename . ($ii) . "position\"></div>\n";
+
         //echo "position plus padding :".$position + $doublepadding."\nposition sans padding: $position\n";
 
         //echo "padding: $padding, padding calcule: " . ((($mxheight + $doublepadding) - $height) / 2) . "\n";
@@ -336,111 +397,20 @@ function my_merge_image_and_css($files, $stylefilename, $imagefilename, $padding
         $countloop++;
         $i++;
     }
+
+    
+    fwrite($fq,"
+       $chaine
+    ");
+
+    fwrite($fq,"
+</div>
+</body>
+</html>
+    ");
+    fclose($fq);
     fclose($fp);
 
     imagepng($image, $imagefilename . ".png");
 
 }
-
-
-
-/*
-imagecopymerge(
-GdImage $dst_image,
-GdImage $src_image,
-int $dst_x,
-int $dst_y,
-int $src_x,
-int $src_y,
-int $src_width,
-int $src_height,
-int $pct
-): bool
-*/
-
-/*
-__________________ETAPE-0___________________
-// echo "$second_img_path\n";
-$img1 = imagecreatefrompng($first_img_path);
-$img2 = imagecreatefrompng($second_img_path);
-list($width , $height , $type) = getimagesize($first_img_path);
-list($width2 , $height2 , $type2) = getimagesize($second_img_path);
-array_push($arr,[$width , $height , $type]);
-//var_dump($arr);
-$wimg1= imagesx ($img1);
-$himg1 = imagesy ($img1);
-$wimg2 = imagesx ($img2);
-$himg2 = imagesy ($img2);
-$mxheight = ($himg1>$himg2)?$himg1:$himg2;
-$image = imagecreatetruecolor(($wimg1+$wimg2),$mxheight);
-imagecolortransparent ($image, imagecolorallocate ($image, 0, 0, 0));
-$imgmerged = imagecopymerge($image, $img1, 0,0,0,0, ($width+$width2), ($height+$height2), 100);
-imagecolortransparent ($image, imagecolorallocate ($image, 0, 0, 0));
-$imgmerged = imagecopymerge($image, $img2, ($width+1),0,0,0, ($width+$width2), ($height+$height2), 100);
-$bgpng = imagepng($image,"sprite.png");
-_____________OPTIONS______________
-echo "$stylefilename $imagefilename";
-$csscheck = stristr($arg, '--output-style=', true);
-if
-(
-$csscheck !== "--output-style="
-)
-{
-$name = stristr($csscheck, '.css');
-if
-(
-$name !== NULL
-)
-{
-$stylefilename = $name.'.css';
-unset($arg);
-}
-}
-echo "$stylefilename $imagefilename";
-if
-(
-$arg=="-s"
-)
-{
-$name = stristr($argv[$key+1], '.css');
-if
-(
-$name !== NULL
-)
-{
-$stylefilename=stristr($argv[$key+1], '.css')."css";
-unset($arg);
-}
-}
-echo "$stylefilename $imagefilename";
-$pngcheck = stristr($arg, '--output-image=', true);
-if
-(
-$pngcheck !== "--output-image"
-)
-{
-$name = stristr($pngcheck, '.png');
-if($name !== ".png")
-{
-$imagefilename = $name.'.png';
-unset($arg);
-}
-}
-echo "$stylefilename $imagefilename";
-if
-(
-$arg=="-i"
-)
-{
-$name = stristr($argv[$key+1], '.png');
-if
-(
-$name !== '.png'
-)
-{
-$imagefilename=stristr($argv[$key+1], '.png')."png";
-unset($arg);
-}
-}
-echo "$stylefilename $imagefilename";
-*/
